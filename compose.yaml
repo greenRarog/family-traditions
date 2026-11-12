@@ -1,0 +1,14 @@
+services:
+  parliament:
+    build: .
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    env_file: .env
+    environment:
+      DATA_PATH: /data/state.json
+    volumes:
+      - parliament-data:/data
+    restart: unless-stopped
+    init: true
+volumes:
+  parliament-data:
