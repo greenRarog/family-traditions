@@ -11,6 +11,7 @@ test("три участника, три проигрыша и гарантиро
   const pages = await Promise.all(contexts.map((c) => c.newPage()));
   for (let i = 0; i < 3; i++) {
     await pages[i].goto("/");
+    await pages[i].getByRole("button", { name: "Войти", exact: true }).click();
     await pages[i]
       .getByLabel("Твой семейный пароль")
       .fill(["dad", "mom", "kid"][i]);
@@ -69,4 +70,49 @@ test("три участника, три проигрыша и гарантиро
     fullPage: true,
   });
   for (const c of contexts) await c.close();
+});
+
+test("описание проекта и раскрывающийся вход на телефоне и компьютере", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Семейный парламент." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Исходный код на GitHub" }),
+  ).toHaveAttribute("href", "https://github.com/greenRarog/family-traditions");
+  await expect(page.getByLabel("Твой семейный пароль")).toHaveCount(0);
+  const toggle = page.getByRole("button", { name: "Войти", exact: true });
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await toggle.click();
+    await expect(page.getByLabel("Твой семейный пароль")).toBeFocused();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  }
+  await toggle.click();
+  await page.getByLabel("Твой семейный пароль").fill("wrong");
+  await page.getByRole("button", { name: "Войти в парламент" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Неверный пароль");
+  await expect(page.getByRole("button", { name: "Повторить" })).toHaveCount(0);
+  await page.getByRole("heading", { name: "Семейный парламент." }).click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await page.reload();
+  await expect(toggle).toBeVisible();
+  await page.screenshot({
+    path: "test-results/landing-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test-results/landing-mobile.png",
+    fullPage: true,
+  });
 });

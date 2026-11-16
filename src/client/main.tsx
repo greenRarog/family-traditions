@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { ParticipantId } from "../domain/catalog";
 import type { State, Voting } from "../domain/engine";
 import "./style.css";
+import { Landing } from "./Landing";
 type Activity = {
   id: string;
   title: string;
@@ -53,7 +54,6 @@ const formatDate = (d: string) =>
 function App() {
   const [me, setMe] = useState<ParticipantId>();
   const [data, setData] = useState<Data>();
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
@@ -123,7 +123,7 @@ function App() {
   }
   const alert = error && (
     <div role="alert" className="error">
-      {error} <button onClick={() => void refresh()}>Повторить</button>
+      {error} {me && <button onClick={() => void refresh()}>Повторить</button>}
     </div>
   );
   if (!ready)
@@ -134,53 +134,20 @@ function App() {
     );
   if (!me)
     return (
-      <main className="login">
-        <div className="login-art">
-          🏡
-          <span>
-            Маленькие традиции.
-            <br />
-            Большие воспоминания.
-          </span>
-        </div>
-        <form
-          className="login-box"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(async () => {
-              const r = await api<{ participantId: ParticipantId }>(
-                "/auth/login",
-                "POST",
-                { password },
-              );
-              setMe(r.participantId);
-              setPassword("");
-            });
-          }}
-        >
-          <div className="eyebrow">НАША СЕМЕЙНАЯ ТРАДИЦИЯ</div>
-          <h1>
-            Семейный
-            <br />
-            парламент<span className="dot">.</span>
-          </h1>
-          <p>Три голоса. Одна прекрасная суббота.</p>
-          <label htmlFor="password">Твой семейный пароль</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button className="primary" disabled={busy}>
-            Войти в парламент →
-          </button>
-          {alert}
-          <small>Здесь важен голос каждого ♥</small>
-        </form>
-      </main>
+      <Landing
+        busy={busy}
+        error={error}
+        login={(password) =>
+          run(async () => {
+            const result = await api<{ participantId: ParticipantId }>(
+              "/auth/login",
+              "POST",
+              { password },
+            );
+            setMe(result.participantId);
+          })
+        }
+      />
     );
   if (!data)
     return <main className="loading">Загружаем семейные планы…{alert}</main>;

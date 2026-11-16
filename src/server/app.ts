@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
   randomInt,
 } from "node:crypto";
-import { resolve as resolvePath } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import {
   activities,
@@ -25,31 +25,47 @@ import {
   type Random,
 } from "../domain/engine";
 import { Storage } from "./storage";
+import { Sessions, SESSION_LIFETIME } from "./sessions";
 export type Config = {
   passwords: Record<ParticipantId, string>;
   secret: string;
   dataPath: string;
   secure: boolean;
+  trustedProxy?: string;
   now?: () => string;
   random?: Random;
 };
 export function createApp(config: Config, storage: Storage) {
   const app = express();
   app.disable("x-powered-by");
+  if (config.trustedProxy) app.set("trust proxy", config.trustedProxy);
   const now = config.now || (() => new Date().toISOString());
   const random =
     config.random || (() => randomInt(0, 0x100000000) / 0x100000000);
-  const sessions = new Map<string, { p: ParticipantId; expires: number }>();
+  const sessions = new Sessions(
+    join(dirname(config.dataPath), "sessions.json"),
+  );
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure: config.secure,
+    path: "/",
+  };
+  const credentials = (p: ParticipantId) =>
+    createHmac("sha256", config.secret)
+      .update(`${p}:${config.passwords[p]}`)
+      .digest("hex");
   const attempts = new Map<string, { count: number; until: number }>();
   const signature = (id: string) =>
     createHmac("sha256", config.secret).update(id).digest("hex");
-  const participant = (req: express.Request) => {
+  const participant = async (req: express.Request) => {
     const cookie = req.headers.cookie
       ?.split(";")
       .map((s) => s.trim())
       .find((s) => s.startsWith("session="))
       ?.slice(8);
     if (!cookie) return;
+    if (!/^[a-f0-9]{64}\.[a-f0-9]{64}$/.test(cookie)) return;
     const [id, sig] = cookie.split(".");
     if (
       !id ||
@@ -58,9 +74,9 @@ export function createApp(config: Config, storage: Storage) {
       !timingSafeEqual(Buffer.from(sig), Buffer.from(signature(id)))
     )
       return;
-    const session = sessions.get(id);
-    if (session && session.expires > Date.now()) return session.p;
-    sessions.delete(id);
+    const session = await sessions.get(id);
+    if (session && session.credentials === credentials(session.participant))
+      return { ...session, id };
   };
   app.use(express.json({ limit: "16kb" }));
   app.use((_req, res, next) => {
@@ -75,6 +91,7 @@ export function createApp(config: Config, storage: Storage) {
   app.get("/health", async (_req, res, next) => {
     try {
       await storage.transaction(() => null);
+      await sessions.check();
       res.json({ status: "ok" });
     } catch (e) {
       next(e);
@@ -94,8 +111,8 @@ export function createApp(config: Config, storage: Storage) {
     }
     next();
   });
-  app.post("/api/auth/login", (req, res) => {
-    const key = req.socket.remoteAddress || "unknown";
+  app.post("/api/auth/login", async (req, res) => {
+    const key = req.ip || req.socket.remoteAddress || "unknown";
     const t = Date.now();
     for (const [key, value] of attempts)
       if (value.until < t) attempts.delete(key);
@@ -123,31 +140,39 @@ export function createApp(config: Config, storage: Storage) {
       return;
     }
     attempts.delete(key);
-    for (const [id, s] of sessions) if (s.expires < t) sessions.delete(id);
     const id = randomBytes(32).toString("hex");
-    sessions.set(id, { p, expires: t + 30 * 86400000 });
+    await sessions.set(id, {
+      participant: p,
+      expires: Date.now() + SESSION_LIFETIME,
+      credentials: credentials(p),
+    });
     res.cookie("session", `${id}.${signature(id)}`, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: config.secure,
-      maxAge: 30 * 86400000,
-      path: "/",
+      ...cookieOptions,
+      maxAge: SESSION_LIFETIME,
     });
     res.json({ participantId: p });
   });
-  app.use("/api", (req, res, next) => {
-    const p = participant(req);
-    if (!p) {
+  app.use("/api", async (req, res, next) => {
+    const session = await participant(req);
+    if (!session) {
       res.status(401).json({ error: "Войдите в семейный парламент" });
       return;
     }
-    res.locals.p = p;
+    res.locals.p = session.participant;
+    res.locals.sessionId = session.id;
+    // Browsers may cap cookie lifetime. Refresh on page load without extending
+    // the original server-side ten-year expiry.
+    if (req.path === "/auth/me") {
+      res.cookie("session", `${session.id}.${signature(session.id)}`, {
+        ...cookieOptions,
+        maxAge: session.expires - Date.now(),
+      });
+    }
     next();
   });
-  app.post("/api/auth/logout", (req, res) => {
-    const cookie = req.headers.cookie?.match(/(?:^|;\s*)session=([^.]+)/);
-    if (cookie) sessions.delete(cookie[1]);
-    res.clearCookie("session", { path: "/" });
+  app.post("/api/auth/logout", async (_req, res) => {
+    await sessions.delete(res.locals.sessionId);
+    res.clearCookie("session", cookieOptions);
     res.json({ ok: true });
   });
   app.get("/api/auth/me", (_req, res) =>

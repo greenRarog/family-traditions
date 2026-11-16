@@ -715,3 +715,145 @@ footer span {
     animation: none !important;
   }
 }
+
+/* Public project page and compact, keyboard-accessible sign-in. */
+.landing-header {
+  max-width: 1160px;
+  padding: 24px 30px;
+}
+.landing-home {
+  color: #526443;
+  font-size: 14px;
+  text-underline-offset: 4px;
+}
+.login-menu {
+  position: relative;
+}
+.login-toggle {
+  padding: 10px 18px;
+  border: 1px solid #d8dccb;
+  border-radius: 24px;
+  background: #fffdf7;
+}
+.login-toggle span {
+  margin-left: 15px;
+}
+.login-dropdown {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(330px, calc(100vw - 40px));
+  padding: 24px;
+  background: #fffdf7;
+  border: 1px solid #d8dccb;
+  border-radius: 20px;
+  box-shadow: 0 16px 50px #303a3020;
+}
+.login-dropdown label {
+  margin-top: 0;
+}
+.login-dropdown .primary {
+  margin-bottom: 16px;
+}
+.landing-main {
+  max-width: 1160px;
+  margin: auto;
+  padding: 72px 30px 35px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+.landing-copy h1 {
+  font-size: clamp(42px, 5.5vw, 68px);
+}
+.landing-copy .eyebrow {
+  line-height: 1.7;
+}
+.landing-copy p {
+  color: #5b6557;
+}
+.landing-lead {
+  font-size: 20px;
+}
+.landing .login-art {
+  min-height: 400px;
+}
+.github-link {
+  display: inline-block;
+  margin: 8px 0 16px;
+  padding: 12px 0;
+  color: #49603b;
+  text-underline-offset: 6px;
+  font-weight: 700;
+}
+.github-link span {
+  margin-left: 12px;
+}
+.landing-how {
+  grid-column: 1 / -1;
+  border-top: 1px solid #e2e4d7;
+  padding-top: 32px;
+}
+.landing-how h2 {
+  font-size: 23px;
+}
+.landing-how ol {
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  list-style: none;
+  counter-reset: steps;
+}
+.landing-how li {
+  counter-increment: steps;
+}
+.landing-how li::before {
+  content: "0" counter(steps);
+  display: block;
+  color: #8c754d;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.landing-how strong {
+  font-size: 18px;
+}
+.landing-how p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #5b6557;
+}
+.landing-footer {
+  max-width: 1160px;
+  margin: auto;
+  padding: 24px 30px 35px;
+  font-size: 12px;
+  color: #65705e;
+}
+@media (max-width: 700px) {
+  .landing-header {
+    padding: 18px 20px;
+    flex-wrap: nowrap;
+  }
+  .landing-main {
+    padding: 38px 22px 20px;
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .landing .login-art {
+    min-height: 190px;
+  }
+  .landing-how ol {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .landing-how {
+    padding-top: 26px;
+  }
+  .landing-footer {
+    padding: 20px 22px 30px;
+    line-height: 1.7;
+  }
+}

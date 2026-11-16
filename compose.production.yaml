@@ -1,0 +1,30 @@
+services:
+  parliament:
+    build: .
+    env_file: ${APP_ENV_FILE:-.env}
+    environment:
+      PORT: "8080"
+      DATA_PATH: /data/state.json
+      COOKIE_SECURE: "true"
+      TRUSTED_PROXY: 172.30.60.2/32
+    volumes:
+      - parliament-data:/data
+    networks:
+      web:
+        aliases: [family-traditions]
+    restart: unless-stopped
+    init: true
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  web:
+    external: true
+    name: personal-web
+
+volumes:
+  parliament-data:

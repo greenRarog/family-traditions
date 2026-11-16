@@ -19,6 +19,7 @@ const config: Config = {
   secret: process.env.SESSION_SECRET,
   dataPath: process.env.DATA_PATH || "data/state.json",
   secure: process.env.COOKIE_SECURE === "true",
+  trustedProxy: process.env.TRUSTED_PROXY || undefined,
 };
 const storage = new Storage(config.dataPath);
 await storage.init();

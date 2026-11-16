@@ -2,13 +2,18 @@ services:
   parliament:
     build: .
     ports:
-      - "${PORT:-8080}:${PORT:-8080}"
-    env_file: .env
+      - "127.0.0.1:${HTTP_PORT:-8081}:${PORT:-8080}"
+    env_file: ${APP_ENV_FILE:-.env}
     environment:
       DATA_PATH: /data/state.json
     volumes:
       - parliament-data:/data
     restart: unless-stopped
     init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 volumes:
   parliament-data:
