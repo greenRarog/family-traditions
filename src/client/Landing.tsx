@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ProjectFooter } from "./ProjectFooter";
 
 export function Landing({
   login,
@@ -144,9 +145,7 @@ export function Landing({
           </ol>
         </section>
       </main>
-      <footer className="landing-footer">
-        Личный проект Григория Конюшенко · Семейные планы доступны после входа
-      </footer>
+      <ProjectFooter />
     </div>
   );
 }

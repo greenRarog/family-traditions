@@ -4,6 +4,7 @@ import type { ParticipantId } from "../domain/catalog";
 import type { State, Voting } from "../domain/engine";
 import "./style.css";
 import { Landing } from "./Landing";
+import { ProjectFooter } from "./ProjectFooter";
 type Activity = {
   id: string;
   title: string;
@@ -475,10 +476,8 @@ function App() {
             <small>Семейный парламент · версия 1.0.0</small>
           </section>
         )}
-        <footer>
-          Сделано для наших суббот <span>♥</span>
-        </footer>
       </main>
+      <ProjectFooter />
       {(selected || detail || confirm) && (
         <div
           className="overlay"
